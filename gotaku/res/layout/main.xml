@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/Layout"
+    android:orientation="vertical"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+>
+    <TextView
+        android:id="@+id/QuestionTextView"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:clickable="true"
+    ></TextView>
+    <ProgressBar
+        android:id="@+id/AnswerTimeProgressBar"
+        android:layout_width="fill_parent"
+        android:layout_height="30dp"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:max="100"
+        android:padding="5dp"
+    ></ProgressBar>
+    <TextView
+        android:id="@+id/AnswerTimeTextView"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+    ></TextView>
+    <Button
+        android:id="@+id/Answer1Button"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:enabled="false"
+    ></Button>
+    <Button
+        android:id="@+id/Answer2Button"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:enabled="false"
+    ></Button>
+    <Button
+        android:id="@+id/Answer3Button"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:enabled="false"
+    ></Button>
+    <Button
+        android:id="@+id/Answer4Button"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:enabled="false"
+    ></Button>
+    <Button
+        android:id="@+id/Answer5Button"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:enabled="false"
+    ></Button>
+
+</LinearLayout>
