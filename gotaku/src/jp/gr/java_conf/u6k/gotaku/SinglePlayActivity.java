@@ -15,13 +15,10 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-public class MainActivity extends Activity {
-
-    private LinearLayout _layout;
+public class SinglePlayActivity extends Activity {
 
     private TextView _questionTextView;
 
@@ -51,9 +48,8 @@ public class MainActivity extends Activity {
 
         super.onCreate(savedInstanceState);
 
-        this.setContentView(R.layout.main);
+        this.setContentView(R.layout.single_play);
 
-        this._layout = (LinearLayout) this.findViewById(R.id.Layout);
         this._questionTextView = (TextView) this.findViewById(R.id.QuestionTextView);
         this._answerTimeProgressBar = (ProgressBar) this.findViewById(R.id.AnswerTimeProgressBar);
         this._answerTimeTextView = (TextView) this.findViewById(R.id.AnswerTimeTextView);
@@ -67,7 +63,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onClick(View view) {
-                MainActivity.this._isClickedQuestion = true;
+                SinglePlayActivity.this._isClickedQuestion = true;
             }
 
         });
@@ -75,7 +71,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onClick(View view) {
-                MainActivity.this._selectedAnswer = 0;
+                SinglePlayActivity.this._selectedAnswer = 0;
             }
 
         });
@@ -83,7 +79,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onClick(View view) {
-                MainActivity.this._selectedAnswer = 1;
+                SinglePlayActivity.this._selectedAnswer = 1;
             }
 
         });
@@ -91,7 +87,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onClick(View view) {
-                MainActivity.this._selectedAnswer = 2;
+                SinglePlayActivity.this._selectedAnswer = 2;
             }
 
         });
@@ -99,7 +95,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onClick(View view) {
-                MainActivity.this._selectedAnswer = 3;
+                SinglePlayActivity.this._selectedAnswer = 3;
             }
 
         });
@@ -107,7 +103,7 @@ public class MainActivity extends Activity {
 
             @Override
             public void onClick(View view) {
-                MainActivity.this._selectedAnswer = 4;
+                SinglePlayActivity.this._selectedAnswer = 4;
             }
 
         });
@@ -199,19 +195,19 @@ public class MainActivity extends Activity {
 
                     @Override
                     public void run() {
-                        MainActivity.this._questionTextView.setText("");
-                        MainActivity.this._answerTimeProgressBar.setProgress(100);
-                        MainActivity.this._answerTimeTextView.setText("");
-                        MainActivity.this._answer1Button.setEnabled(false);
-                        MainActivity.this._answer1Button.setText("");
-                        MainActivity.this._answer2Button.setEnabled(false);
-                        MainActivity.this._answer2Button.setText("");
-                        MainActivity.this._answer3Button.setEnabled(false);
-                        MainActivity.this._answer3Button.setText("");
-                        MainActivity.this._answer4Button.setEnabled(false);
-                        MainActivity.this._answer4Button.setText("");
-                        MainActivity.this._answer5Button.setEnabled(false);
-                        MainActivity.this._answer5Button.setText("");
+                        SinglePlayActivity.this._questionTextView.setText("");
+                        SinglePlayActivity.this._answerTimeProgressBar.setProgress(100);
+                        SinglePlayActivity.this._answerTimeTextView.setText("");
+                        SinglePlayActivity.this._answer1Button.setEnabled(false);
+                        SinglePlayActivity.this._answer1Button.setText("");
+                        SinglePlayActivity.this._answer2Button.setEnabled(false);
+                        SinglePlayActivity.this._answer2Button.setText("");
+                        SinglePlayActivity.this._answer3Button.setEnabled(false);
+                        SinglePlayActivity.this._answer3Button.setText("");
+                        SinglePlayActivity.this._answer4Button.setEnabled(false);
+                        SinglePlayActivity.this._answer4Button.setText("");
+                        SinglePlayActivity.this._answer5Button.setEnabled(false);
+                        SinglePlayActivity.this._answer5Button.setText("");
                     }
 
                 });
@@ -222,15 +218,15 @@ public class MainActivity extends Activity {
                 final IGotakuGenreInfo genre = g.getGenreList().get(0);
                 final IGotakuQuestionInfo q = genre.getQuestionList().get(0);
 
-                MainActivity.this._time = 100;
-                MainActivity.this._selectedAnswer = -1;
+                SinglePlayActivity.this._time = 100;
+                SinglePlayActivity.this._selectedAnswer = -1;
 
                 // 出題開始
                 this._h.post(new Runnable() {
 
                     @Override
                     public void run() {
-                        AlertDialog.Builder adb = new AlertDialog.Builder(MainActivity.this);
+                        AlertDialog.Builder adb = new AlertDialog.Builder(SinglePlayActivity.this);
                         adb.setTitle("問題開始");
                         adb.setMessage("出題します。");
                         adb.setPositiveButton("開始", new DialogInterface.OnClickListener() {
@@ -255,7 +251,7 @@ public class MainActivity extends Activity {
                 }
 
                 // 問題表示
-                MainActivity.this._isClickedQuestion = false;
+                SinglePlayActivity.this._isClickedQuestion = false;
 
                 for (int i = 0; i < q.getQuestion().length(); i++) {
                     final int end = i;
@@ -264,12 +260,12 @@ public class MainActivity extends Activity {
 
                         @Override
                         public void run() {
-                            MainActivity.this._questionTextView.setText(q.getQuestion().substring(0, end));
+                            SinglePlayActivity.this._questionTextView.setText(q.getQuestion().substring(0, end));
                         }
 
                     });
 
-                    if (MainActivity.this._isClickedQuestion) {
+                    if (SinglePlayActivity.this._isClickedQuestion) {
                         break;
                     }
 
@@ -280,28 +276,28 @@ public class MainActivity extends Activity {
 
                     @Override
                     public void run() {
-                        MainActivity.this._questionTextView.setText(q.getQuestion());
+                        SinglePlayActivity.this._questionTextView.setText(q.getQuestion());
                     }
 
                 });
 
                 // 選択肢表示
-                MainActivity.this._selectedAnswer = -1;
+                SinglePlayActivity.this._selectedAnswer = -1;
 
                 this._h.post(new Runnable() {
 
                     @Override
                     public void run() {
-                        MainActivity.this._answer1Button.setText(q.getAnswerList().get(0));
-                        MainActivity.this._answer1Button.setEnabled(true);
-                        MainActivity.this._answer2Button.setText(q.getAnswerList().get(1));
-                        MainActivity.this._answer2Button.setEnabled(true);
-                        MainActivity.this._answer3Button.setText(q.getAnswerList().get(2));
-                        MainActivity.this._answer3Button.setEnabled(true);
-                        MainActivity.this._answer4Button.setText(q.getAnswerList().get(3));
-                        MainActivity.this._answer4Button.setEnabled(true);
-                        MainActivity.this._answer5Button.setText(q.getAnswerList().get(4));
-                        MainActivity.this._answer5Button.setEnabled(true);
+                        SinglePlayActivity.this._answer1Button.setText(q.getAnswerList().get(0));
+                        SinglePlayActivity.this._answer1Button.setEnabled(true);
+                        SinglePlayActivity.this._answer2Button.setText(q.getAnswerList().get(1));
+                        SinglePlayActivity.this._answer2Button.setEnabled(true);
+                        SinglePlayActivity.this._answer3Button.setText(q.getAnswerList().get(2));
+                        SinglePlayActivity.this._answer3Button.setEnabled(true);
+                        SinglePlayActivity.this._answer4Button.setText(q.getAnswerList().get(3));
+                        SinglePlayActivity.this._answer4Button.setEnabled(true);
+                        SinglePlayActivity.this._answer5Button.setText(q.getAnswerList().get(4));
+                        SinglePlayActivity.this._answer5Button.setEnabled(true);
                     }
 
                 });
@@ -309,8 +305,8 @@ public class MainActivity extends Activity {
                 // カウント・ダウン
                 final DecimalFormat df = new DecimalFormat("#0.0");
 
-                for (MainActivity.this._time = 100; MainActivity.this._time >= 0; MainActivity.this._time--) {
-                    if (MainActivity.this._selectedAnswer != -1) {
+                for (SinglePlayActivity.this._time = 100; SinglePlayActivity.this._time >= 0; SinglePlayActivity.this._time--) {
+                    if (SinglePlayActivity.this._selectedAnswer != -1) {
                         break;
                     }
 
@@ -318,8 +314,8 @@ public class MainActivity extends Activity {
 
                         @Override
                         public void run() {
-                            MainActivity.this._answerTimeProgressBar.setProgress(MainActivity.this._time);
-                            MainActivity.this._answerTimeTextView.setText("Time: " + df.format(MainActivity.this._time / 10.0d));
+                            SinglePlayActivity.this._answerTimeProgressBar.setProgress(SinglePlayActivity.this._time);
+                            SinglePlayActivity.this._answerTimeTextView.setText("Time: " + df.format(SinglePlayActivity.this._time / 10.0d));
                         }
 
                     });
@@ -332,15 +328,15 @@ public class MainActivity extends Activity {
 
                     @Override
                     public void run() {
-                        MainActivity.this._answer1Button.setEnabled(false);
-                        MainActivity.this._answer2Button.setEnabled(false);
-                        MainActivity.this._answer3Button.setEnabled(false);
-                        MainActivity.this._answer4Button.setEnabled(false);
-                        MainActivity.this._answer5Button.setEnabled(false);
+                        SinglePlayActivity.this._answer1Button.setEnabled(false);
+                        SinglePlayActivity.this._answer2Button.setEnabled(false);
+                        SinglePlayActivity.this._answer3Button.setEnabled(false);
+                        SinglePlayActivity.this._answer4Button.setEnabled(false);
+                        SinglePlayActivity.this._answer5Button.setEnabled(false);
 
-                        AlertDialog.Builder adb = new AlertDialog.Builder(MainActivity.this);
+                        AlertDialog.Builder adb = new AlertDialog.Builder(SinglePlayActivity.this);
                         adb.setTitle("結果表示");
-                        adb.setMessage("選択: " + MainActivity.this._selectedAnswer + "\n" + "Time: " + MainActivity.this._time);
+                        adb.setMessage("選択: " + SinglePlayActivity.this._selectedAnswer + "\n" + "Time: " + SinglePlayActivity.this._time);
                         adb.setPositiveButton("OK", new DialogInterface.OnClickListener() {
 
                             @Override

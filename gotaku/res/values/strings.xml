@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello">Hello World, MainActivity!</string>
-    <string name="app_name">gotaku</string>
+    <string
+        name="app_name"
+    >ごたく for Android</string>
+    <string
+        name="single_play"
+    >シングルプレイ</string>
+    <string
+        name="help"
+    >ヘルプ</string>
 </resources>

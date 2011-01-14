@@ -21,14 +21,19 @@ public final class R {
         public static final int Answer5Button=0x7f050008;
         public static final int AnswerTimeProgressBar=0x7f050002;
         public static final int AnswerTimeTextView=0x7f050003;
+        public static final int HelpButton=0x7f05000b;
         public static final int Layout=0x7f050000;
         public static final int QuestionTextView=0x7f050001;
+        public static final int SinglePlayButton=0x7f05000a;
+        public static final int TitleTextView=0x7f050009;
     }
     public static final class layout {
-        public static final int main=0x7f030000;
+        public static final int single_play=0x7f030000;
+        public static final int start=0x7f030001;
     }
     public static final class string {
-        public static final int app_name=0x7f040001;
-        public static final int hello=0x7f040000;
+        public static final int app_name=0x7f040000;
+        public static final int help=0x7f040002;
+        public static final int single_play=0x7f040001;
     }
 }
