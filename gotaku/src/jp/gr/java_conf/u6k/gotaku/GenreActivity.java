@@ -16,6 +16,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -25,6 +27,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class GenreActivity extends Activity {
+
+    private static final int MENU_SELECT_FILE = 0;
 
     private ListView _genreListView;
 
@@ -84,6 +88,35 @@ public class GenreActivity extends Activity {
             return convertView;
         }
 
+    }
+
+    /*
+     * メニュー関連の処理。
+     */
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        menu.add(0, GenreActivity.MENU_SELECT_FILE, 0, R.string.select_gotaku_file);
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case MENU_SELECT_FILE:
+                this.menuSelectFile();
+                break;
+            default:
+                throw new RuntimeException();
+        }
+
+        return true;
+    }
+
+    private void menuSelectFile() {
+        FileListDialog fileListDialog = new FileListDialog(this);
+        fileListDialog.show();
     }
 
     /**

@@ -12,4 +12,13 @@
     <string
         name="select_genre"
     >ジャンル選択</string>
+    <string
+        name="ok"
+    >OK</string>
+    <string
+        name="cancel"
+    >キャンセル</string>
+    <string
+        name="select_gotaku_file"
+    >ごたくファイル選択</string>
 </resources>
