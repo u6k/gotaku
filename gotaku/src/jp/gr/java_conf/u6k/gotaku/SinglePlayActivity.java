@@ -2,14 +2,17 @@
 package jp.gr.java_conf.u6k.gotaku;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
-import jp.gr.java_conf.u6k.gotaku.gotaku.GotakuFileBuilder;
 import jp.gr.java_conf.u6k.gotaku.gotaku.IGotakuGenreInfo;
-import jp.gr.java_conf.u6k.gotaku.gotaku.IGotakuInfo;
 import jp.gr.java_conf.u6k.gotaku.gotaku.IGotakuQuestionInfo;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -17,8 +20,11 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class SinglePlayActivity extends Activity {
+
+    private IGotakuGenreInfo _genre;
 
     private TextView _questionTextView;
 
@@ -36,16 +42,13 @@ public class SinglePlayActivity extends Activity {
 
     private Button _answer5Button;
 
-    private int _time;
-
     private int _selectedAnswer;
 
     private boolean _isClickedQuestion;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        Log.d("gotaku", "onCreate");
-
+        // レイアウトを設定して、ビューを取得します。
         super.onCreate(savedInstanceState);
 
         this.setContentView(R.layout.single_play);
@@ -59,6 +62,11 @@ public class SinglePlayActivity extends Activity {
         this._answer4Button = (Button) this.findViewById(R.id.Answer4Button);
         this._answer5Button = (Button) this.findViewById(R.id.Answer5Button);
 
+        // インテントからデータを取得します。
+        Intent intent = this.getIntent();
+        this._genre = (IGotakuGenreInfo) intent.getExtras().get("genre");
+
+        // ビューを設定します。
         this._questionTextView.setOnClickListener(new View.OnClickListener() {
 
             @Override
@@ -108,90 +116,40 @@ public class SinglePlayActivity extends Activity {
 
         });
 
-        Thread t = new Thread(new GameThread(new Handler()));
+        // ゲーム・スレッドを開始します。
+        Thread t = new Thread(new GameRunnable(new Handler()));
         t.start();
     }
 
-    @Override
-    protected void onDestroy() {
-        Log.d("gotaku", "onDestroy");
+    private class GameRunnable implements Runnable {
 
-        super.onDestroy();
-    }
-
-    @Override
-    public void onLowMemory() {
-        Log.d("gotaku", "onLowMemory");
-
-        super.onLowMemory();
-    }
-
-    @Override
-    protected void onPause() {
-        Log.d("gotaku", "onPause");
-
-        super.onPause();
-    }
-
-    @Override
-    protected void onRestart() {
-        Log.d("gotaku", "onRestart");
-
-        super.onRestart();
-    }
-
-    @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        Log.d("gotaku", "onRestoreInstanceState");
-
-        super.onRestoreInstanceState(savedInstanceState);
-    }
-
-    @Override
-    protected void onResume() {
-        Log.d("gotaku", "onResume");
-
-        super.onResume();
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        Log.d("gotaku", "onSaveInstanceState");
-
-        super.onSaveInstanceState(outState);
-    }
-
-    @Override
-    protected void onStart() {
-        Log.d("gotaku", "onStart");
-
-        super.onStart();
-    }
-
-    @Override
-    protected void onStop() {
-        Log.d("gotaku", "onStop");
-
-        super.onStop();
-    }
-
-    private class GameThread implements Runnable {
+        private boolean _isRunning;
 
         private Object _lock = new Object();
 
-        private Handler _h;
+        private Handler _handler;
 
-        public GameThread(Handler h) {
-            this._h = h;
+        private int _time;
+
+        private int _questionNumber;
+
+        private int _correctNumber;
+
+        private int _incorrectNumber;
+
+        private boolean _isCorrect;
+
+        public GameRunnable(Handler handler) {
+            this._handler = handler;
         }
 
         @Override
         public void run() {
             try {
-                Log.d("gotaku", "ゲーム・スレッド開始");
+                Log.d("gotaku", "GameRunnable.run start");
 
                 // 表示初期化
-                this._h.post(new Runnable() {
+                this._handler.post(new Runnable() {
 
                     @Override
                     public void run() {
@@ -212,155 +170,199 @@ public class SinglePlayActivity extends Activity {
 
                 });
 
-                // 変数初期化
-                GotakuFileBuilder gb = new GotakuFileBuilder();
-                IGotakuInfo g = gb.build(null);
-                final IGotakuGenreInfo genre = g.getGenreList().get(0);
-                final IGotakuQuestionInfo q = genre.getQuestionList().get(0);
-
-                SinglePlayActivity.this._time = 100;
-                SinglePlayActivity.this._selectedAnswer = -1;
-
                 // 出題開始
-                this._h.post(new Runnable() {
+                Random r = new Random();
+
+                this._isRunning = true;
+
+                this._handler.post(new Runnable() {
 
                     @Override
                     public void run() {
                         AlertDialog.Builder adb = new AlertDialog.Builder(SinglePlayActivity.this);
-                        adb.setTitle("問題開始");
-                        adb.setMessage("出題します。");
+                        adb.setMessage("ジャンル: " + SinglePlayActivity.this._genre.getName() + "の問題を始めます。");
                         adb.setPositiveButton("開始", new DialogInterface.OnClickListener() {
 
                             @Override
                             public void onClick(DialogInterface dialoginterface, int i) {
-                                synchronized (GameThread.this._lock) {
-                                    GameThread.this._lock.notifyAll();
+                                synchronized (GameRunnable.this._lock) {
+                                    GameRunnable.this._isRunning = false;
+                                    GameRunnable.this._lock.notifyAll();
                                 }
                             }
 
                         });
                         adb.setCancelable(false);
-                        AlertDialog ad = adb.create();
-                        ad.show();
+                        adb.create().show();
                     }
 
                 });
 
                 synchronized (this._lock) {
-                    this._lock.wait();
+                    while (this._isRunning) {
+                        this._lock.wait();
+                    }
                 }
 
-                // 問題表示
-                SinglePlayActivity.this._isClickedQuestion = false;
+                // 出題を並び替えます。
+                List<Integer> questionNumberList = new ArrayList<Integer>();
 
-                for (int i = 0; i < q.getQuestion().length(); i++) {
-                    final int end = i;
-
-                    this._h.post(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            SinglePlayActivity.this._questionTextView.setText(q.getQuestion().substring(0, end));
-                        }
-
-                    });
-
-                    if (SinglePlayActivity.this._isClickedQuestion) {
-                        break;
-                    }
-
-                    Thread.sleep(100);
+                for (int i = 0; i < SinglePlayActivity.this._genre.getQuestionList().size(); i++) {
+                    questionNumberList.add(i);
                 }
 
-                this._h.post(new Runnable() {
+                Collections.shuffle(questionNumberList, r);
 
-                    @Override
-                    public void run() {
-                        SinglePlayActivity.this._questionTextView.setText(q.getQuestion());
-                    }
+                // 10問、繰り返します。
+                for (this._questionNumber = 0; this._questionNumber < 10; this._questionNumber++) {
+                    // 問題表示
+                    final IGotakuQuestionInfo question = SinglePlayActivity.this._genre.getQuestionList().get(questionNumberList.get(this._questionNumber));
 
-                });
+                    SinglePlayActivity.this._isClickedQuestion = false;
 
-                // 選択肢表示
-                SinglePlayActivity.this._selectedAnswer = -1;
+                    for (int i = 0; i < question.getQuestion().length(); i++) {
+                        final int end = i;
 
-                this._h.post(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        SinglePlayActivity.this._answer1Button.setText(q.getAnswerList().get(0));
-                        SinglePlayActivity.this._answer1Button.setEnabled(true);
-                        SinglePlayActivity.this._answer2Button.setText(q.getAnswerList().get(1));
-                        SinglePlayActivity.this._answer2Button.setEnabled(true);
-                        SinglePlayActivity.this._answer3Button.setText(q.getAnswerList().get(2));
-                        SinglePlayActivity.this._answer3Button.setEnabled(true);
-                        SinglePlayActivity.this._answer4Button.setText(q.getAnswerList().get(3));
-                        SinglePlayActivity.this._answer4Button.setEnabled(true);
-                        SinglePlayActivity.this._answer5Button.setText(q.getAnswerList().get(4));
-                        SinglePlayActivity.this._answer5Button.setEnabled(true);
-                    }
-
-                });
-
-                // カウント・ダウン
-                final DecimalFormat df = new DecimalFormat("#0.0");
-
-                for (SinglePlayActivity.this._time = 100; SinglePlayActivity.this._time >= 0; SinglePlayActivity.this._time--) {
-                    if (SinglePlayActivity.this._selectedAnswer != -1) {
-                        break;
-                    }
-
-                    this._h.post(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            SinglePlayActivity.this._answerTimeProgressBar.setProgress(SinglePlayActivity.this._time);
-                            SinglePlayActivity.this._answerTimeTextView.setText("Time: " + df.format(SinglePlayActivity.this._time / 10.0d));
-                        }
-
-                    });
-
-                    Thread.sleep(100);
-                }
-
-                // 結果表示
-                this._h.post(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        SinglePlayActivity.this._answer1Button.setEnabled(false);
-                        SinglePlayActivity.this._answer2Button.setEnabled(false);
-                        SinglePlayActivity.this._answer3Button.setEnabled(false);
-                        SinglePlayActivity.this._answer4Button.setEnabled(false);
-                        SinglePlayActivity.this._answer5Button.setEnabled(false);
-
-                        AlertDialog.Builder adb = new AlertDialog.Builder(SinglePlayActivity.this);
-                        adb.setTitle("結果表示");
-                        adb.setMessage("選択: " + SinglePlayActivity.this._selectedAnswer + "\n" + "Time: " + SinglePlayActivity.this._time);
-                        adb.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        this._handler.post(new Runnable() {
 
                             @Override
-                            public void onClick(DialogInterface dialoginterface, int i) {
-                                synchronized (GameThread.this._lock) {
-                                    GameThread.this._lock.notifyAll();
-                                }
+                            public void run() {
+                                SinglePlayActivity.this._questionTextView.setText(question.getQuestion().substring(0, end));
                             }
 
                         });
-                        adb.setCancelable(false);
-                        AlertDialog ad = adb.create();
-                        ad.show();
+
+                        if (SinglePlayActivity.this._isClickedQuestion) {
+                            break;
+                        }
+
+                        Thread.sleep(100);
                     }
 
-                });
+                    this._handler.post(new Runnable() {
 
-                synchronized (this._lock) {
-                    this._lock.wait();
+                        @Override
+                        public void run() {
+                            SinglePlayActivity.this._questionTextView.setText(question.getQuestion());
+                        }
+
+                    });
+
+                    // 選択肢を並び替えます。
+                    final List<Integer> answerNumberList = new ArrayList<Integer>();
+
+                    for (int i = 0; i < 5; i++) {
+                        answerNumberList.add(i);
+                    }
+
+                    Collections.shuffle(answerNumberList, r);
+
+                    // 選択肢表示
+                    SinglePlayActivity.this._selectedAnswer = -1;
+
+                    this._handler.post(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            SinglePlayActivity.this._answer1Button.setText(question.getAnswerList().get(answerNumberList.get(0)));
+                            SinglePlayActivity.this._answer1Button.setEnabled(true);
+                            SinglePlayActivity.this._answer2Button.setText(question.getAnswerList().get(answerNumberList.get(1)));
+                            SinglePlayActivity.this._answer2Button.setEnabled(true);
+                            SinglePlayActivity.this._answer3Button.setText(question.getAnswerList().get(answerNumberList.get(2)));
+                            SinglePlayActivity.this._answer3Button.setEnabled(true);
+                            SinglePlayActivity.this._answer4Button.setText(question.getAnswerList().get(answerNumberList.get(3)));
+                            SinglePlayActivity.this._answer4Button.setEnabled(true);
+                            SinglePlayActivity.this._answer5Button.setText(question.getAnswerList().get(answerNumberList.get(4)));
+                            SinglePlayActivity.this._answer5Button.setEnabled(true);
+                        }
+
+                    });
+
+                    // カウント・ダウン
+                    final DecimalFormat df = new DecimalFormat("#0.0");
+
+                    for (this._time = 100; this._time >= 0; this._time--) {
+                        if (SinglePlayActivity.this._selectedAnswer != -1) {
+                            break;
+                        }
+
+                        this._handler.post(new Runnable() {
+
+                            @Override
+                            public void run() {
+                                SinglePlayActivity.this._answerTimeProgressBar.setProgress(GameRunnable.this._time);
+                                SinglePlayActivity.this._answerTimeTextView.setText("Time: " + df.format(GameRunnable.this._time / 10.0d));
+                            }
+
+                        });
+
+                        Thread.sleep(100);
+                    }
+
+                    // 結果表示
+                    if (SinglePlayActivity.this._selectedAnswer != -1) {
+                        if (answerNumberList.get(SinglePlayActivity.this._selectedAnswer) == 0) {
+                            this._isCorrect = true;
+                        } else {
+                            this._isCorrect = false;
+                        }
+                    } else {
+                        this._isCorrect = false;
+                    }
+
+                    if (this._isCorrect) {
+                        this._correctNumber++;
+                    } else {
+                        this._incorrectNumber++;
+                    }
+
+                    this._handler.post(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            SinglePlayActivity.this._answer1Button.setEnabled(false);
+                            SinglePlayActivity.this._answer2Button.setEnabled(false);
+                            SinglePlayActivity.this._answer3Button.setEnabled(false);
+                            SinglePlayActivity.this._answer4Button.setEnabled(false);
+                            SinglePlayActivity.this._answer5Button.setEnabled(false);
+
+                            AlertDialog.Builder adb = new AlertDialog.Builder(SinglePlayActivity.this);
+                            adb.setMessage((GameRunnable.this._questionNumber + 1) + "問目 " + (GameRunnable.this._isCorrect ? "正解" : "不正解") + "\n正解数: " + GameRunnable.this._correctNumber + "\n不正解数: " + GameRunnable.this._incorrectNumber);
+                            adb.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+
+                                @Override
+                                public void onClick(DialogInterface dialoginterface, int i) {
+                                    synchronized (GameRunnable.this._lock) {
+                                        GameRunnable.this._lock.notifyAll();
+                                    }
+                                }
+
+                            });
+                            adb.setCancelable(false);
+                            AlertDialog ad = adb.create();
+                            ad.show();
+                        }
+
+                    });
+
+                    synchronized (this._lock) {
+                        this._lock.wait();
+                    }
                 }
+
+                // 結果画面に遷移します。
+                Intent intent = new Intent(SinglePlayActivity.this, ResultActivity.class);
+                intent.putExtra("correct", this._correctNumber);
+                intent.putExtra("incorrect", this._incorrectNumber);
+                SinglePlayActivity.this.startActivity(intent);
+
+                SinglePlayActivity.this.finish();
+
+                Log.d("gotaku", "GameRunnable.run end");
             } catch (Exception e) {
-                Log.e("gotaku", "ゲーム・スレッドの致命的エラー", e);
-            } finally {
-                Log.d("gotaku", "ゲーム・スレッド終了");
+                Log.e("gotaku", "GameRunnable.run", e);
+
+                Toast.makeText(SinglePlayActivity.this, e.getClass().getName() + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
         }
 

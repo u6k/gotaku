@@ -27,7 +27,7 @@ public class StartActivity extends Activity {
 
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(StartActivity.this, SinglePlayActivity.class);
+                Intent intent = new Intent(StartActivity.this, GenreActivity.class);
                 StartActivity.this.startActivity(intent);
             }
 
