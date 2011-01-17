@@ -255,9 +255,9 @@ public class GenreActivity extends Activity {
 
                         // ごたくデータを読み込みます。
                         File file = new File(filePath);
+
                         GotakuFileBuilder gb = new GotakuFileBuilder();
-                        IGotakuInfo gotaku = gb.read(file);
-                        gb.readFileAndInsertData(gotaku, GenreActivity.this);
+                        gb.readFileAndWriteDb(file, GenreActivity.this);
 
                         // リスト・ビューに表示します。
                         Thread t = new Thread(new RefreshGenreListRunnable(LoadGotakuRunnable.this._handler));

@@ -19,12 +19,13 @@ import android.util.Log;
 
 public class GotakuFileBuilder {
 
-    public IGotakuInfo read(File file) throws IOException {
-        List<IGotakuGenreInfo> genreList;
+    public void readFileAndWriteDb(File file, Context context) throws IOException {
+        // ごたくファイルを読み込みます。
+        List<InternalGotakuGenreInfo> genreList;
 
         InputStream in = new FileInputStream(file);
         try {
-            genreList = new ArrayList<IGotakuGenreInfo>();
+            genreList = new ArrayList<InternalGotakuGenreInfo>();
 
             // ジャンル・ヘッダーを読み込みます。
             for (int i = 0; i < 8; i++) {
@@ -36,29 +37,28 @@ public class GotakuFileBuilder {
                 String genreId = IOUtil.readString(in, 8);
                 IOUtil.readSkip(in, 214);
 
-                GotakuGenreInfo genre = new GotakuGenreInfo();
-                genre.setName(genreName);
-                genre.setCount(genreCount);
-                genre.setOffset(genreOffset);
+                InternalGotakuGenreInfo genre = new InternalGotakuGenreInfo();
+                genre._name = genreName;
+                genre._count = genreCount;
+                genre._offset = genreOffset;
 
                 genreList.add(genre);
 
                 // TODO
-                Log.v("gotaku", "ジャンル名: \"" + genre.getName() + "\"");
+                Log.v("gotaku", "ジャンル名: \"" + genre._name + "\"");
                 Log.v("gotaku", "予約域: \"" + genreReserved + "\"");
-                Log.v("gotaku", "問題数: \"" + genre.getCount() + "\"");
-                Log.v("gotaku", "先頭位置: \"" + genre.getOffset() + "\"");
+                Log.v("gotaku", "問題数: \"" + genre._count + "\"");
+                Log.v("gotaku", "先頭位置: \"" + genre._offset + "\"");
                 Log.v("gotaku", "プレイヤーデータファイル名: \"" + genrePlayerData + "\"");
                 Log.v("gotaku", "ID: \"" + genreId + "\"");
             }
 
-            for (IGotakuGenreInfo gotakuGenre : genreList) {
-                GotakuGenreInfo genre = (GotakuGenreInfo) gotakuGenre;
+            // 問題を読み込みます。
+            for (InternalGotakuGenreInfo gotakuGenre : genreList) {
+                List<InternalGotakuQuestionInfo> questionList = new ArrayList<InternalGotakuQuestionInfo>();
 
-                List<IGotakuQuestionInfo> questionList = new ArrayList<IGotakuQuestionInfo>();
-
-                for (int i = 0; i < genre.getCount(); i++) {
-                    GotakuQuestionInfo question = new GotakuQuestionInfo();
+                for (int i = 0; i < gotakuGenre._count; i++) {
+                    InternalGotakuQuestionInfo question = new InternalGotakuQuestionInfo();
 
                     String q = IOUtil.readQuestionString(in, 116);
 
@@ -69,26 +69,23 @@ public class GotakuFileBuilder {
                     answerList.add(IOUtil.readQuestionString(in, 28));
                     answerList.add(IOUtil.readQuestionString(in, 28));
 
-                    question.setQuestion(q);
-                    question.setAnswerList(answerList);
+                    question._question = q;
+                    question._answerList = answerList;
 
                     questionList.add(question);
                 }
 
-                genre.setQuestionList(questionList);
+                gotakuGenre._questionList = questionList;
             }
         } finally {
             in.close();
         }
 
-        GotakuInfo gotaku = new GotakuInfo();
-        gotaku.setName(file.getName());
-        gotaku.setGenreList(genreList);
+        InternalGotakuSetInfo gotaku = new InternalGotakuSetInfo();
+        gotaku._name = file.getName();
+        gotaku._genreList = genreList;
 
-        return gotaku;
-    }
-
-    public void readFileAndInsertData(IGotakuInfo gotaku, Context context) throws IOException {
+        // DBに書き込みます。
         DbOpenHelper dbHelper = new DbOpenHelper(context);
         try {
             SQLiteDatabase db = dbHelper.getWritableDatabase();
@@ -96,15 +93,15 @@ public class GotakuFileBuilder {
                 db.beginTransaction();
                 try {
                     GotakuSetDao gotakuSetDao = new GotakuSetDao(db);
-                    long setId = gotakuSetDao.create(gotaku.getName());
+                    long setId = gotakuSetDao.create(gotaku._name);
 
-                    for (IGotakuGenreInfo genre : gotaku.getGenreList()) {
+                    for (InternalGotakuGenreInfo genre : gotaku._genreList) {
                         GotakuGenreDao gotakuGenreDao = new GotakuGenreDao(db);
-                        long genreId = gotakuGenreDao.create(setId, genre.getName());
+                        long genreId = gotakuGenreDao.create(setId, genre._name);
 
-                        for (IGotakuQuestionInfo question : genre.getQuestionList()) {
+                        for (InternalGotakuQuestionInfo question : genre._questionList) {
                             GotakuQuestionDao gotakuQuestionDao = new GotakuQuestionDao(db);
-                            gotakuQuestionDao.create(genreId, question.getQuestion(), question.getAnswerList().get(0), question.getAnswerList().get(1), question.getAnswerList().get(2), question.getAnswerList().get(3), question.getAnswerList().get(4));
+                            gotakuQuestionDao.create(genreId, question._question, question._answerList.get(0), question._answerList.get(1), question._answerList.get(2), question._answerList.get(3), question._answerList.get(4));
                         }
                     }
 
@@ -118,6 +115,34 @@ public class GotakuFileBuilder {
         } finally {
             dbHelper.close();
         }
+    }
+
+    private class InternalGotakuSetInfo {
+
+        String _name;
+
+        List<InternalGotakuGenreInfo> _genreList = new ArrayList<InternalGotakuGenreInfo>();
+
+    }
+
+    private class InternalGotakuGenreInfo {
+
+        String _name;
+
+        List<InternalGotakuQuestionInfo> _questionList = new ArrayList<InternalGotakuQuestionInfo>();
+
+        int _count;
+
+        int _offset;
+
+    }
+
+    private class InternalGotakuQuestionInfo {
+
+        String _question;
+
+        List<String> _answerList = new ArrayList<String>();
+
     }
 
 }
