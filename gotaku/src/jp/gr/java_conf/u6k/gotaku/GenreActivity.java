@@ -14,6 +14,7 @@ import jp.gr.java_conf.u6k.gotaku.gotaku.IGotakuInfo;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
@@ -50,6 +51,15 @@ public class GenreActivity extends Activity {
 
             @Override
             public void onItemClick(AdapterView<?> parentView, View view, int position, long id) {
+                GenreListItem item = (GenreListItem) view.getTag();
+                if (item._genreId != -1) {
+                    Intent intent = new Intent(GenreActivity.this, SinglePlayActivity.class);
+                    intent.putExtra("setId", item._setId);
+                    intent.putExtra("genreId", item._genreId);
+                    GenreActivity.this.startActivity(intent);
+
+                    GenreActivity.this.finish();
+                }
             }
 
         });
@@ -86,14 +96,24 @@ public class GenreActivity extends Activity {
 
                         GenreActivity.this._gotakuList = setDao.findAll();
 
-                        List<String> l = new ArrayList<String>();
+                        List<GenreListItem> l = new ArrayList<GenreActivity.GenreListItem>();
 
                         for (IGotakuInfo gotaku : GenreActivity.this._gotakuList) {
-                            l.add(gotaku.getName());
+                            GenreListItem item = new GenreListItem();
+                            item._setId = gotaku.getId();
+                            item._genreId = -1;
+                            item._name = gotaku.getName();
+
+                            l.add(item);
 
                             List<IGotakuGenreInfo> genreList = genreDao.findBySetId(gotaku.getId());
                             for (IGotakuGenreInfo genre : genreList) {
-                                l.add("    " + genre.getName());
+                                item = new GenreListItem();
+                                item._setId = gotaku.getId();
+                                item._genreId = genre.getId();
+                                item._name = genre.getName();
+
+                                l.add(item);
                             }
                         }
 
@@ -132,13 +152,13 @@ public class GenreActivity extends Activity {
      * ジャンル・リストをアダプターを実装します。
      * </p>
      */
-    private class GenreListViewAdapter extends ArrayAdapter<String> {
+    private class GenreListViewAdapter extends ArrayAdapter<GenreListItem> {
 
         private LayoutInflater _inflater;
 
-        private List<String> _list;
+        private List<GenreListItem> _list;
 
-        public GenreListViewAdapter(Context context, List<String> objects) {
+        public GenreListViewAdapter(Context context, List<GenreListItem> objects) {
             super(context, R.id.GenreListView, objects);
 
             this._inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -149,9 +169,16 @@ public class GenreActivity extends Activity {
         public View getView(int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = this._inflater.inflate(R.layout.genre_list, null);
-
                 TextView genreNameTextView = (TextView) convertView.findViewById(R.id.GenreNameTextView);
-                genreNameTextView.setText(this._list.get(position));
+
+                GenreListItem item = this._list.get(position);
+                if (item._genreId == -1) {
+                    genreNameTextView.setText(item._name);
+                } else {
+                    genreNameTextView.setText("    " + item._name);
+                }
+
+                convertView.setTag(item);
             }
 
             return convertView;
@@ -298,6 +325,16 @@ public class GenreActivity extends Activity {
 
             Log.d("gotaku", this.getClass().getName() + " execute end");
         }
+    }
+
+    private class GenreListItem {
+
+        long _setId;
+
+        long _genreId;
+
+        String _name;
+
     }
 
 }
