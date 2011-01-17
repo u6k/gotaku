@@ -4,10 +4,11 @@ package jp.gr.java_conf.u6k.gotaku.gotaku;
 import java.util.ArrayList;
 import java.util.List;
 
-import android.os.Parcel;
-import android.os.Parcelable;
-
 public class GotakuGenreInfo implements IGotakuGenreInfo {
+
+    private long _id;
+
+    private long _setId;
 
     private String _name;
 
@@ -18,6 +19,24 @@ public class GotakuGenreInfo implements IGotakuGenreInfo {
     private int _offset;
 
     public GotakuGenreInfo() {
+    }
+
+    @Override
+    public long getId() {
+        return this._id;
+    }
+
+    public void setId(long id) {
+        this._id = id;
+    }
+
+    @Override
+    public long getSetId() {
+        return this._setId;
+    }
+
+    public void setSetId(long setId) {
+        this._setId = setId;
     }
 
     @Override
@@ -52,58 +71,6 @@ public class GotakuGenreInfo implements IGotakuGenreInfo {
 
     public void setOffset(int offset) {
         this._offset = offset;
-    }
-
-    /*
-     * ここからParcelの実装。
-     */
-
-    public static final Parcelable.Creator<GotakuGenreInfo> CREATOR = new Creator<GotakuGenreInfo>() {
-
-        @Override
-        public GotakuGenreInfo[] newArray(int size) {
-            return new GotakuGenreInfo[size];
-        }
-
-        @Override
-        public GotakuGenreInfo createFromParcel(Parcel in) {
-            return new GotakuGenreInfo(in);
-        }
-    };
-
-    private GotakuGenreInfo(Parcel in) {
-        this._name = in.readString();
-
-        int size = in.readInt();
-
-        for (int i = 0; i < size; i++) {
-            IGotakuQuestionInfo question = in.readParcelable(this.getClass().getClassLoader());
-            this._questionList.add(question);
-        }
-
-        this._count = in.readInt();
-
-        this._offset = in.readInt();
-    }
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(this._name);
-
-        dest.writeInt(this._questionList.size());
-
-        for (IGotakuQuestionInfo question : this._questionList) {
-            dest.writeParcelable(question, flags);
-        }
-
-        dest.writeInt(this._count);
-
-        dest.writeInt(this._offset);
     }
 
 }

@@ -1,17 +1,20 @@
 
 package jp.gr.java_conf.u6k.gotaku;
 
-import java.io.InputStream;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import jp.gr.java_conf.u6k.gotaku.db.DbOpenHelper;
+import jp.gr.java_conf.u6k.gotaku.db.GotakuGenreDao;
+import jp.gr.java_conf.u6k.gotaku.db.GotakuSetDao;
 import jp.gr.java_conf.u6k.gotaku.gotaku.GotakuFileBuilder;
 import jp.gr.java_conf.u6k.gotaku.gotaku.IGotakuGenreInfo;
 import jp.gr.java_conf.u6k.gotaku.gotaku.IGotakuInfo;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -32,7 +35,7 @@ public class GenreActivity extends Activity {
 
     private ListView _genreListView;
 
-    private IGotakuInfo _gotaku;
+    private List<IGotakuInfo> _gotakuList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,22 +50,88 @@ public class GenreActivity extends Activity {
 
             @Override
             public void onItemClick(AdapterView<?> parentView, View view, int position, long id) {
-                IGotakuGenreInfo genre = GenreActivity.this._gotaku.getGenreList().get(position);
-
-                Intent intent = new Intent(GenreActivity.this, SinglePlayActivity.class);
-                intent.putExtra("genre", genre);
-                GenreActivity.this.startActivity(intent);
-
-                GenreActivity.this.finish();
             }
 
         });
 
         // ごたくデータの読み込みを開始します。
-        Thread t = new Thread(new LoadGotakuRunnable(new Handler()));
-        t.start();
+        new Thread(new RefreshGenreListRunnable(new Handler())).start();
     }
 
+    /**
+     * <p>
+     * 問題セットをDBから取得して、ジャンル・リストを更新します。
+     * </p>
+     */
+    private class RefreshGenreListRunnable implements Runnable {
+
+        private Handler _handler;
+
+        public RefreshGenreListRunnable(Handler handler) {
+            this._handler = handler;
+        }
+
+        @Override
+        public void run() {
+            Log.d("gotaku", this.getClass().getName() + " run start");
+            try {
+                // DBを開きます。
+                DbOpenHelper dbHelper = new DbOpenHelper(GenreActivity.this);
+                try {
+                    SQLiteDatabase db = dbHelper.getReadableDatabase();
+                    try {
+                        // 問題セットをDBから取得します。
+                        GotakuSetDao setDao = new GotakuSetDao(db);
+                        GotakuGenreDao genreDao = new GotakuGenreDao(db);
+
+                        GenreActivity.this._gotakuList = setDao.findAll();
+
+                        List<String> l = new ArrayList<String>();
+
+                        for (IGotakuInfo gotaku : GenreActivity.this._gotakuList) {
+                            l.add(gotaku.getName());
+
+                            List<IGotakuGenreInfo> genreList = genreDao.findBySetId(gotaku.getId());
+                            for (IGotakuGenreInfo genre : genreList) {
+                                l.add("    " + genre.getName());
+                            }
+                        }
+
+                        // ジャンル・リストを更新します。
+                        final GenreListViewAdapter adapter = new GenreListViewAdapter(GenreActivity.this, l);
+
+                        this._handler.post(new Runnable() {
+
+                            @Override
+                            public void run() {
+                                GenreActivity.this._genreListView.setAdapter(adapter);
+                            }
+
+                        });
+
+                        // DBを閉じます。
+                    } finally {
+                        db.close();
+                    }
+                } finally {
+                    dbHelper.close();
+                }
+
+            } catch (Exception e) {
+                Log.e("gotaku", this.getClass().getName() + " run error", e);
+
+                Toast.makeText(GenreActivity.this, e.getClass().getName() + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+            Log.d("gotaku", this.getClass().getName() + " run end");
+        }
+
+    }
+
+    /**
+     * <p>
+     * ジャンル・リストをアダプターを実装します。
+     * </p>
+     */
     private class GenreListViewAdapter extends ArrayAdapter<String> {
 
         private LayoutInflater _inflater;
@@ -105,18 +174,16 @@ public class GenreActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case MENU_SELECT_FILE:
-                this.menuSelectFile();
+                // ごたくファイルの選択ダイアログを表示します。
+                FileListDialog fileListDialog = new FileListDialog(this, new LoadGotakuRunnable(new Handler()));
+                fileListDialog.show();
+
                 break;
             default:
                 throw new RuntimeException();
         }
 
         return true;
-    }
-
-    private void menuSelectFile() {
-        FileListDialog fileListDialog = new FileListDialog(this);
-        fileListDialog.show();
     }
 
     /**
@@ -129,123 +196,108 @@ public class GenreActivity extends Activity {
      * <li>プログレス・ダイアログを閉じます。
      * </ol>
      */
-    private class LoadGotakuRunnable implements Runnable {
+    private class LoadGotakuRunnable implements FileListDialog.CloseListener {
 
         private Handler _handler;
-
-        private ProgressDialog _progressDialog;
-
-        private boolean _isRunning;
-
-        private Object _lock = new Object();
 
         public LoadGotakuRunnable(Handler handler) {
             this._handler = handler;
         }
 
         @Override
-        public void run() {
-            try {
-                Log.d("gotaku", "LoadGotakuThread.run start");
+        public void execute(FileListDialog dialog) {
+            Log.d("gotaku", this.getClass().getName() + " execute start");
 
-                // プログレス・ダイアログを表示します。
-                this._isRunning = true;
+            // ファイル選択の結果を取得します。
+            final String filePath = dialog.getFilePath();
 
-                this._handler.post(new Runnable() {
+            Log.d("gotaku", this.getClass().getName() + " filePath: " + filePath);
 
-                    @Override
-                    public void run() {
-                        LoadGotakuRunnable.this._progressDialog = new ProgressDialog(GenreActivity.this);
-                        LoadGotakuRunnable.this._progressDialog.setMessage("ごたくデータを読み込み中...");
-                        LoadGotakuRunnable.this._progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-                        LoadGotakuRunnable.this._progressDialog.setCancelable(false);
-                        LoadGotakuRunnable.this._progressDialog.show();
+            // ごたくファイルの読み込みを開始します。
+            Thread t = new Thread(new Runnable() {
 
-                        synchronized (LoadGotakuRunnable.this._lock) {
-                            LoadGotakuRunnable.this._isRunning = false;
-                            LoadGotakuRunnable.this._lock.notifyAll();
+                private ProgressDialog _progressDialog;
+
+                private boolean _isRunning;
+
+                private Object _lock = new Object();
+
+                @Override
+                public void run() {
+                    Log.d("gotaku", this.getClass().getName() + " execute start");
+                    try {
+                        // プログレス・ダイアログを表示します。
+                        this._isRunning = true;
+
+                        LoadGotakuRunnable.this._handler.post(new Runnable() {
+
+                            @Override
+                            public void run() {
+                                _progressDialog = new ProgressDialog(GenreActivity.this);
+                                _progressDialog.setMessage("ごたくファイルを読み込み中...");
+                                _progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                                _progressDialog.setCancelable(false);
+                                _progressDialog.show();
+
+                                synchronized (_lock) {
+                                    _isRunning = false;
+                                    _lock.notifyAll();
+                                }
+                            }
+
+                        });
+
+                        synchronized (this._lock) {
+                            while (this._isRunning) {
+                                this._lock.wait();
+                            }
                         }
-                    }
 
-                });
+                        // ごたくデータを読み込みます。
+                        File file = new File(filePath);
+                        GotakuFileBuilder gb = new GotakuFileBuilder();
+                        IGotakuInfo gotaku = gb.read(file);
+                        gb.readFileAndInsertData(gotaku, GenreActivity.this);
 
-                synchronized (this._lock) {
-                    while (this._isRunning) {
-                        this._lock.wait();
-                    }
-                }
+                        // リスト・ビューに表示します。
+                        Thread t = new Thread(new RefreshGenreListRunnable(LoadGotakuRunnable.this._handler));
+                        t.start();
+                        t.join();
 
-                // ごたくデータを読み込みます。
-                InputStream in = GenreActivity.this.getAssets().open("testdata/SAD_M1&2.5TQ");
-                try {
-                    GotakuFileBuilder gb = new GotakuFileBuilder();
-                    GenreActivity.this._gotaku = gb.build(in);
-                } finally {
-                    in.close();
-                }
+                        // プログレス・ダイアログを閉じます。
+                        this._isRunning = true;
 
-                // リスト・ビューに表示します。
-                List<String> genreNameList = new ArrayList<String>();
+                        LoadGotakuRunnable.this._handler.post(new Runnable() {
 
-                for (IGotakuGenreInfo genre : GenreActivity.this._gotaku.getGenreList()) {
-                    genreNameList.add(genre.getName());
-                }
+                            @Override
+                            public void run() {
+                                _progressDialog.cancel();
 
-                final GenreListViewAdapter adapter = new GenreListViewAdapter(GenreActivity.this, genreNameList);
+                                synchronized (_lock) {
+                                    _isRunning = false;
+                                    _lock.notifyAll();
+                                }
+                            }
 
-                this._isRunning = true;
+                        });
 
-                this._handler.post(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        GenreActivity.this._genreListView.setAdapter(adapter);
-
-                        synchronized (LoadGotakuRunnable.this._lock) {
-                            LoadGotakuRunnable.this._isRunning = false;
-                            LoadGotakuRunnable.this._lock.notifyAll();
+                        synchronized (this._lock) {
+                            while (this._isRunning) {
+                                this._lock.wait();
+                            }
                         }
+                    } catch (Exception e) {
+                        Log.e("gotaku", this.getClass().getName() + " execute error", e);
                     }
 
-                });
-
-                synchronized (this._lock) {
-                    while (this._isRunning) {
-                        this._lock.wait();
-                    }
+                    Log.d("gotaku", this.getClass().getName() + " execute end");
                 }
 
-                // プログレス・ダイアログを閉じます。
-                this._isRunning = true;
+            });
+            t.start();
 
-                this._handler.post(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        LoadGotakuRunnable.this._progressDialog.cancel();
-
-                        synchronized (LoadGotakuRunnable.this._lock) {
-                            LoadGotakuRunnable.this._isRunning = false;
-                            LoadGotakuRunnable.this._lock.notifyAll();
-                        }
-                    }
-
-                });
-
-                synchronized (this._lock) {
-                    while (this._isRunning) {
-                        this._lock.wait();
-                    }
-                }
-
-                Log.d("gotaku", "LoadGotakuThread.run end");
-            } catch (Exception e) {
-                Log.e("gotaku", "LoadGotakuThread.run", e);
-
-                Toast.makeText(GenreActivity.this, e.getClass().getName() + ": " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            }
+            Log.d("gotaku", this.getClass().getName() + " execute end");
         }
-
     }
 
 }

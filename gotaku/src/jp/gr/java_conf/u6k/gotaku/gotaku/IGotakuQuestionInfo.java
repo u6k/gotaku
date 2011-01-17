@@ -3,9 +3,11 @@ package jp.gr.java_conf.u6k.gotaku.gotaku;
 
 import java.util.List;
 
-import android.os.Parcelable;
+public interface IGotakuQuestionInfo {
 
-public interface IGotakuQuestionInfo extends Parcelable {
+    long getId();
+
+    long getGenreId();
 
     String getQuestion();
 
